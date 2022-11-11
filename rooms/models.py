@@ -30,6 +30,17 @@ class Room(CommonModel):
     def total_amenities(self):
         return self.amenities.count()
 
+    # 방 리뷰 평점 평균
+    def rating(self):
+        count = self.reviews.count()
+        if count == 0:
+            return "no reviews"
+        else:
+            total_rating = 0
+            for review in self.reviews.all().values("rating"):
+                total_rating += review["rating"]
+            return round(total_rating / count, 2)
+
 class Amenity(CommonModel):
     name = models.CharField(max_length=150)
     description = models.CharField(max_length=150, null=True, blank=True)
