@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.status import HTTP_204_NO_CONTENT
@@ -7,14 +7,13 @@ from .serializers import CatgegorySerializer
 
 # Create your views here.
 
-
-@api_view(["GET", "POST"])
-def all_categories(request):
-    if request.method == "GET":
+class Categories(APIView):
+    def get(self, request):
         all_categoreis = Category.objects.all()
         serializer = CatgegorySerializer(all_categoreis, many=True)
         return Response(serializer.data)
-    elif request.method == "POST":
+    
+    def post(self, request):
         serializer = CatgegorySerializer(data=request.data)
         if serializer.is_valid():
             new_category = serializer.save()
@@ -23,17 +22,22 @@ def all_categories(request):
         else:
             return Response(serializer.errors)
 
+class CategoryDetail(APIView):
+    def get_object(self, pk):
+        try:
+            category = Category.objects.get(pk=pk)
+        except Category.DoesNotExist:
+            raise NotFound
+        return category
 
-@api_view(["GET", "PUT", "DELETE"])
-def category(request, pk):
-    try:
-        category = Category.objects.get(pk=pk)
-    except Category.DoesNotExist:
-        raise NotFound
-    if request.method == "GET":
+    def get(self, request, pk):
+        category = self.get_object(pk)
         serializer = CatgegorySerializer(category)
+        print(serializer)
         return Response(serializer.data)
-    elif request.method == "PUT":
+
+    def put(self, request, pk):
+        category = self.get_object(pk)
         serializer = CatgegorySerializer(
             category,
             data=request.data,
@@ -44,6 +48,10 @@ def category(request, pk):
             return Response(CatgegorySerializer(updated_catetory).data)
         else:
             return Response(serializer.erros)
-    elif request.method == "DELETE":
+
+    def delete(self, request, pk):
+        category = self.get_object(pk)
         category.delete()
         return Response(status=HTTP_204_NO_CONTENT)
+        
+
