@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.views import APIView
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -11,10 +12,12 @@ from rest_framework.exceptions import (
     PermissionDenied,
 )
 from .models import Room, Amenity
+from bookings.models import Booking
 from categories.models import Category
 from .serializers import AmenitySerializer, RoomListSerializer, RoomDetailSerializer
 from reviews.serializers import ReviewSerializer
 from medias.serializers import PhotoSerializer
+from bookings.serializers import BookingSerializer, CreateBookingSerializer
 
 # Create your views here.
 class Rooms(APIView):
@@ -157,6 +160,8 @@ class AmenityDetail(APIView):
 
 
 class RoomReviews(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
     def get_object(self, pk):
         try:
             return Room.objects.get(pk=pk)
@@ -175,6 +180,15 @@ class RoomReviews(APIView):
         room = self.get_object(pk)
         serializer = ReviewSerializer(room.reviews.all()[start:end], many=True)
         return Response(serializer.data)
+
+    def post(self, request, pk):
+        serializer = ReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            review = serializer.save(user=request.user, room=self.get_object(pk))
+            serializer = ReviewSerializer(review)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
 
 
 class RoomAmenities(APIView):
@@ -201,7 +215,7 @@ class RoomAmenities(APIView):
 
 class RoomPhotos(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
-    
+
     def get_object(self, pk):
         try:
             return Room.objects.get(pk=pk)
@@ -216,6 +230,41 @@ class RoomPhotos(APIView):
         if serializer.is_valid():
             photo = serializer.save(room=room)
             serializer = PhotoSerializer(photo)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
+
+
+class RoomBookings(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except:
+            raise NotFound
+
+    def get(self, request, pk):
+        room = self.get_object(pk)
+        # 현재날짜이후의 예약 가져오기
+        now = timezone.localtime(timezone.now()).date()
+        print(now)
+        bookings = Booking.objects.filter(
+            room=room,
+            kind=Booking.BookingKindChoices.ROOM,
+            check_in__gt=now,
+        )
+        serializer = BookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, pk):
+        room = self.get_object(pk)
+        serializer = CreateBookingSerializer(data=request.data)
+        if serializer.is_valid():
+            booking = serializer.save(
+                room=room, user=request.user, kind=Booking.BookingKindChoices.ROOM
+            )
+            serializer = BookingSerializer(booking)
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
