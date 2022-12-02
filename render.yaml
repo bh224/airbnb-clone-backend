@@ -1,0 +1,22 @@
+databases:
+  - name: airbnb-clone
+    databaseName: airbnb-clone
+    user: airbnb-clone
+    region: singapore
+
+services:
+  - type: web
+    name: airbnb-clone
+    env: python
+    region: singapore
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn mysite.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: airbnb-clone
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
