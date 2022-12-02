@@ -36,6 +36,8 @@ ALLOWED_HOSTS = []
 # Application definition
 THIRD_PARTY_APPS = [
     "rest_framework",
+    "rest_framework.authtoken", #migrate
+    "corsheaders",
 ]
 
 CUSTOM_APPS = [
@@ -66,6 +68,7 @@ INSTALLED_APPS = CUSTOM_APPS + THIRD_PARTY_APPS + SYSTEM_APPS
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -152,3 +155,25 @@ AUTH_USER_MODEL = 'users.User'
 MEDIA_ROOT = "uploads"
 
 MEDIA_URL = "user-uploads/"
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 'rest_framework.authentication.BasicAuthentication', #기본으로 사용안함...
+        'rest_framework.authentication.SessionAuthentication', #로그인한  유저가 누구인지 알려준다
+        'config.authentication.TrustMeBroAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        "config.authentication.JWTAuthentication",
+    ]
+}
+
+CORS_ALLOWED_ORIGINS = ["http://127.0.0.1:3000"]
+
+"""If True, cookies will be allowed to be included in cross-site HTTP request . js를 통해 credential을 받을 수 있다"""
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:3000"]
+
+GH_SECRET = env("GH_SECRET")
+
+CF_ID = env("CF_ID")
+CF_TOKEN = env("CF_TOKEN")

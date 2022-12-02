@@ -5,4 +5,4 @@ class CatgegorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         # exclude = ("created_at")
-        fields = ("name", "kind",)
+        fields = ("pk", "name", "kind",)

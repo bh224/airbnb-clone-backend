@@ -9,7 +9,8 @@ from .serializers import CatgegorySerializer
 
 class Categories(APIView):
     def get(self, request):
-        all_categoreis = Category.objects.all()
+        kind = request.query_params.dict()["kind"]
+        all_categoreis = Category.objects.filter(kind=kind)
         serializer = CatgegorySerializer(all_categoreis, many=True)
         return Response(serializer.data)
     

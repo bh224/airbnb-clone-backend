@@ -1,9 +1,10 @@
+import time
 from django.conf import settings
 from django.utils import timezone
 from rest_framework.views import APIView
 from django.db import transaction
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.status import HTTP_204_NO_CONTENT
+from rest_framework.status import HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST
 from rest_framework.response import Response
 from rest_framework.exceptions import (
     NotFound,
@@ -52,13 +53,13 @@ class Rooms(APIView):
                     for amenity_pk in amenities:
                         amenity = Amenity.objects.get(pk=amenity_pk)
                         room.amenities.add(amenity)
-                    serializer = RoomDetailSerializer(room)
+                    serializer = RoomDetailSerializer(room, context={'request': request})
                     return Response(serializer.data)
             except Exception:
                 raise ParseError("Amenity not found")
 
         else:
-            return Response(serializer.errors)
+            return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
 
 class RoomDetail(APIView):
@@ -71,6 +72,7 @@ class RoomDetail(APIView):
             raise NotFound
 
     def get(self, request, pk):
+        time.sleep(1)
         room = self.get_object(pk)
         serializer = RoomDetailSerializer(room, context={"request": request})
         return Response(serializer.data)
@@ -129,7 +131,7 @@ class Amenities(APIView):
             amenity = serializer.save()
             return Response(AmenitySerializer(amenity).data)
         else:
-            return Response(serializer.errors)
+            return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
 
 class AmenityDetail(APIView):
@@ -259,7 +261,7 @@ class RoomBookings(APIView):
 
     def post(self, request, pk):
         room = self.get_object(pk)
-        serializer = CreateBookingSerializer(data=request.data)
+        serializer = CreateBookingSerializer(data=request.data, context={'room':room})
         if serializer.is_valid():
             booking = serializer.save(
                 room=room, user=request.user, kind=Booking.BookingKindChoices.ROOM
@@ -268,3 +270,25 @@ class RoomBookings(APIView):
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
+
+
+class RoomBookingCheck(APIView):
+
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except:
+            raise NotFound
+
+    def get(self, request, pk):
+        room = self.get_object(pk)
+        check_out = request.query_params.get('check_out')
+        check_in = request.query_params.get('check_in')
+        exists = Booking.objects.filter(
+            room=room,
+            check_in__lte=check_out,
+            check_out__gte=check_in,
+        ).exists()
+        if exists:
+            return Response({'ok':False})
+        return Response({'ok':True})
