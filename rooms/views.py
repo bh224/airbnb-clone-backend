@@ -293,5 +293,5 @@ class RoomBookingCheck(APIView):
             return Response({'ok':False})
         return Response({'ok':True})
 
-def trigger_error(request):
+def make_error(request):
     division_by_zero = 1 / 0
